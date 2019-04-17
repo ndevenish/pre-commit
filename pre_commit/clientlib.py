@@ -263,12 +263,21 @@ def ordered_load_normalize_legacy_config(contents):
         return data
 
 
-load_config = functools.partial(
-    cfgv.load_from_filename,
-    schema=CONFIG_SCHEMA,
-    load_strategy=ordered_load_normalize_legacy_config,
-    exc_tp=InvalidConfigError,
-)
+def load_config(*args, **kwargs):
+    config = functools.partial(
+        cfgv.load_from_filename,
+        schema=CONFIG_SCHEMA,
+        load_strategy=ordered_load_normalize_legacy_config,
+        exc_tp=InvalidConfigError,
+    )(*args, **kwargs)
+    for repo in config["repos"]:
+        if repo.get("repo", None) == "https://github.com/dials/black":
+            repo["repo"] = "https://github.com/ambv/black"
+            repo["rev"] = "stable"
+        for hook in repo.get("hooks", []):
+            if hook.get("language_version") == "libtbx.python":
+                hook["language_version"] = "python3"
+    return config
 
 
 def validate_config_main(argv=None):
